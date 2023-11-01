@@ -2,9 +2,10 @@
 
 #include <iostream>
 #include <fstream>
-#include <map>
 #include <SDL.h>
 #include <SDL_ttf.h>
+#include <random>
+#include <chrono>
 
 const unsigned int RAM_SIZE         = 4096;
 const unsigned int NUM_REGISTERS    = 16;
@@ -22,7 +23,7 @@ class Chip8 {
 public:
     Chip8();
     void loadROM(const char* filename);
-    void emulateCycle();
+    void Cycle();
 
     uint8_t display[DISPLAY_WIDTH * DISPLAY_HEIGHT]{};  // Monochrome display of 64x32 pixels (2048 pixels total)
     uint8_t key[NUM_KEYS]{};                            // Represents state of 16 keys; 0/1 = unpressed/pressed
@@ -38,6 +39,8 @@ private:
     uint16_t stack[STACK_LEVELS]{};                     // Stack for storing return addresses
     uint16_t sp{};                                      // Stack pointer
 
+    std::default_random_engine randGen;                 // See opcode_CXNN
+    std::uniform_int_distribution<uint8_t> randByte;    // See opcode_CXNN
 
     void Table0();
     void Table8();

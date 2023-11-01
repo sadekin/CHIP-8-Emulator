@@ -25,7 +25,10 @@ uint8_t chip8_font_set[FONT_SET_SIZE] = {
 };
 
 
-Chip8::Chip8() {
+Chip8::Chip8()
+    // Initialize random number generator with seed as the system clock.
+    : randGen(std::chrono::system_clock::now().time_since_epoch().count()) {
+
     // Program counter starts at 0x200 because historically the system memory up to
     // 0x1FF was reserved for the interpreter itself. Most Chip-8 programs start
     // running at location 0x200.
@@ -37,6 +40,8 @@ Chip8::Chip8() {
     for (int i = 0; i < FONT_SET_SIZE; ++i) {
         memory[i + START_FONT_SET_ADDRESS] = chip8_font_set[i];
     }
+
+    randByte = std::uniform_int_distribution<uint8_t>(0, 255);
 
     tabulateOpcodes();
 }
@@ -74,26 +79,19 @@ void Chip8::loadROM(const char *filename) {
 }
 
 
-void Chip8::emulateCycle() {
+void Chip8::Cycle() {
     // Fetch opcode
     opcode = memory[pc] << 8 | memory[pc + 1];
 
-    // Decode opcode
-    switch (opcode & 0xF000) {
-        case 0x0000:
-            // Handle 0x00E0 and 0x00EE
-            break;
-            //... Handle other opcodes
+    // Increment PC before execution
+    pc += 2;
 
-        default:
-            std::cout << "Unknown opcode: " << opcode << std::endl;
-    }
+    // Decode opcode
+    (this->*table[(opcode & 0xF000) >> 12])();
 
     // Update timers
-    if (delay_timer > 0)
-        --delay_timer;
-    if (sound_timer > 0)
-        --sound_timer;
+    if (delay_timer > 0) --delay_timer;
+    if (sound_timer > 0) --sound_timer;
 }
 
 uint8_t Chip8::mapSDLKeyToChip8Key(SDL_Keycode sdl_key) {
