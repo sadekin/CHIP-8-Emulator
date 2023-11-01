@@ -275,28 +275,53 @@ void Chip8::opcode_ANNN() {
     pc += 2;
 }
 
-// Set I to the location of the sprite for character in VX
+// Sets I to the location of the sprite for the character in VX.
+// Characters 0-F (in hexadecimal) are represented by a 4x5 font.
 void Chip8::opcode_FX29() {
+    uint8_t rx = (opcode & 0x0F00) >> 8;
 
+    // Font chars are located at START_FONT_SET_ADDRESS and are 5 bytes each
+    uint16_t spriteAddr = START_FONT_SET_ADDRESS + (V[rx] * 5);
+    I = spriteAddr;
+
+    pc += 2;
 }
 
 // Stores the binary-coded decimal (BCD) representation of VX,
 // with the hundreds digit in memory at location in I,
 // the tens digit at location I+1, and the ones digit at location I+2.
 void Chip8::opcode_FX33() {
+    uint8_t value = V[(opcode & 0x0F00) >> 8];
 
+    memory[I]       = value / 100;
+    memory[I + 1]   = (value % 100) / 10;
+    memory[I + 2]   = value / 10;
+
+    pc += 2;
 }
 
 // Stores from V0 to VX (including VX) in memory, starting at address I.
 // The offset from I is increased by 1 for each value written, but I itself is left unmodified.
 void Chip8::opcode_FX55() {
+    uint8_t rx = (opcode & 0x0F00) >> 8;
 
+    for (int i = 0; i < rx + 1; ++i) {
+        memory[I + i] = V[i];
+    }
+
+    pc += 2;
 }
 
 // Fills from V0 to VX (including VX) with values from memory, starting at address I.
 // The offset from I is increased by 1 for each value read, but I itself is left unmodified.
 void Chip8::opcode_FX65() {
+    uint8_t rx = (opcode & 0x0F00) >> 8;
 
+    for (int i = 0; i < rx + 1; ++i) {
+        V[i] = memory[I + i];
+    }
+
+    pc += 2;
 }
 
 
