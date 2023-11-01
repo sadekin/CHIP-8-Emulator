@@ -1,26 +1,11 @@
 #include "chip8.h"
 
-Chip8::Chip8() {
-    // Program counter starts at 0x200 because historically the system memory up to
-    // 0x1FF was reserved for the interpreter itself. Most Chip-8 programs start
-    // running at location 0x200.
-    pc      = START_INSTRUCTION_ADDRESS;    // Reset program counter.
-    opcode  = 0;                            // Reset current opcode.
-    I       = 0;                            // Reset index register.
-    sp      = 0;                            // Reset stack pointer.
-
-    for (uint8_t&   i : display) i = 0;  // Clear display.
-    for (uint8_t&   r : V)       r = 0;  // Clear registers.
-    for (uint8_t&   m : memory)  m = 0;  // Clear memory.
-    for (uint16_t&  m : stack)   m = 0;  // Clear stack.
-
-    // Load font set.
-    // The Chip-8 interpreter used a set of built-in fonts for
-    // the hex digits 0 through F.
-    // Each hexadecimal digit is represented using a 5x4 grid.
-    // The 1s (bits set) represent where pixels would be on for that
-    // character on a Chip-8 screen.
-    uint8_t chip8_fontset[80] = {
+// The Chip-8 interpreter used a set of built-in fonts for
+// the hex digits 0 through F.
+// Each hexadecimal digit is represented using a 5x4 grid.
+// The 1s (bits set) represent where pixels would be on for that
+// character on a Chip-8 screen.
+uint8_t chip8_font_set[FONT_SET_SIZE] = {
         0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
         0x20, 0x60, 0x20, 0x20, 0x70, // 1
         0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -37,20 +22,26 @@ Chip8::Chip8() {
         0xE0, 0x90, 0x90, 0x90, 0xE0, // D
         0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
         0xF0, 0x80, 0xF0, 0x80, 0x80  // F
-    };
+};
 
+
+Chip8::Chip8() {
+    // Program counter starts at 0x200 because historically the system memory up to
+    // 0x1FF was reserved for the interpreter itself. Most Chip-8 programs start
+    // running at location 0x200.
+    pc = START_INSTRUCTION_ADDRESS;
+
+    // Load font set.
     // These should be loaded into the memory at a predefined location,
     // usually starting at address 0x50 (or 0x000 in some references).
-    for (int i = 0; i < 80; ++i) {
-        memory[i + START_FONT_SET_ADDRESS] = chip8_fontset[i];
+    for (int i = 0; i < FONT_SET_SIZE; ++i) {
+        memory[i + START_FONT_SET_ADDRESS] = chip8_font_set[i];
     }
 
-    // Reset timers.
-    delay_timer = 0;
-    sound_timer = 0;
+    tabulateOpcodes();
 }
 
-void Chip8::loadGame(const char *filename) {
+void Chip8::loadROM(const char *filename) {
     // Open the given file in binary mode and position the file pointer at the end.
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
 

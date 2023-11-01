@@ -6,30 +6,38 @@
 #include <SDL.h>
 #include <SDL_ttf.h>
 
-// http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#3.0
+const unsigned int RAM_SIZE         = 4096;
+const unsigned int NUM_REGISTERS    = 16;
+const unsigned int DISPLAY_WIDTH    = 64;
+const unsigned int DISPLAY_HEIGHT   = 32;
+const unsigned int STACK_LEVELS     = 16;
+const unsigned int NUM_KEYS         = 16;
 
-const uint16_t RAM_SIZE = 1024 * 4;
-const uint8_t NUM_REGISTERS = 16,  STACK_LEVELS = 16, NUM_KEYS = 16;
-const uint16_t START_INSTRUCTION_ADDRESS = 0x200, START_FONT_SET_ADDRESS = 0x50;
-const uint8_t DISPLAY_WIDTH = 64, DISPLAY_HEIGHT = 32;
+const unsigned int START_INSTRUCTION_ADDRESS    = 0x200;
+const unsigned int START_FONT_SET_ADDRESS       = 0x50;
+const unsigned int FONT_SET_SIZE                = 80;
+
 
 class Chip8 {
 public:
     Chip8();
+    void loadROM(const char* filename);
     void emulateCycle();
 
+    uint8_t display[DISPLAY_WIDTH * DISPLAY_HEIGHT]{};  // Monochrome display of 64x32 pixels (2048 pixels total)
+    uint8_t key[NUM_KEYS]{};                            // Represents state of 16 keys; 0/1 = unpressed/pressed
+
 private:
-    uint16_t opcode;                                    // Current opcode (2 bytes long)
+    uint16_t opcode{};                                  // Current opcode
     uint8_t memory[RAM_SIZE]{};                         // 4K memory of the Chip-8 system
     uint8_t V[NUM_REGISTERS]{};                         // 16 general-purpose 8-bit registers. VF doubles as a flag.
-    uint16_t I;                                         // Index register (2 bytes long)
-    uint16_t pc;                                        // Program counter (2 bytes long)
-    uint8_t display[DISPLAY_WIDTH * DISPLAY_HEIGHT]{};  // Monochrome display of 64x32 pixels (2048 pixels total)
-    uint8_t delay_timer;                                // Delay timer, decrements at 60Hz when set to a value above 0
-    uint8_t sound_timer;                                // Sound timer, system beeps when this timer reaches 0
-    uint16_t stack[STACK_LEVELS]{};                     // Stack for storing return addresses (16 levels deep)
-    uint16_t sp;                                        // Stack pointer
-    uint8_t key[NUM_KEYS]{};                            // Represents state of 16 keys; 0/1 = unpressed/pressed
+    uint16_t I{};                                       // Index register
+    uint16_t pc;                                        // Program counter
+    uint8_t delay_timer{};                              // Delay timer, decrements at 60Hz when set to a value above 0
+    uint8_t sound_timer{};                              // Sound timer, system beeps when this timer reaches 0
+    uint16_t stack[STACK_LEVELS]{};                     // Stack for storing return addresses
+    uint16_t sp{};                                      // Stack pointer
+
 
     void Table0();
     void Table8();
@@ -41,9 +49,9 @@ private:
     Opcode table8[0xE + 1]{};
     Opcode tableE[0xE + 1]{};
     Opcode tableF[0x65 + 1]{};
-    void initializeOpcodeTable();
+    void tabulateOpcodes();
 
-    void loadGame(const char* filename);
+
     static uint8_t mapSDLKeyToChip8Key(SDL_Keycode sdl_key);
 
     // Opcodes===============================================================================================

@@ -330,7 +330,7 @@ void Chip8::opcode_FX65() {
 
 /* Opcode Table Initialization */
 
-void Chip8::initializeOpcodeTable() {
+void Chip8::tabulateOpcodes() {
     // The first digit of each opcode runs from 0x0 t0 0xF, hence sizeof(table) = 0xF + 1;
     table[0x0] = &Chip8::Table0;        // See (*) below
 
@@ -402,10 +402,3 @@ void Chip8::Table8() { (this->*table8[opcode & 0x000F])(); }
 void Chip8::TableE() { (this->*tableE[opcode & 0x000F])(); }
 
 void Chip8::TableF() { (this->*tableF[opcode & 0x00FF])(); }
-
-
-
-
-
-
-
