@@ -5,7 +5,7 @@ I initially wanted to create a GameBoy emulator. But as I tried to follow tutori
 
 Here are some valuable resources that I used as guides to cross-examine my work: 
 
-http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#2.4
+http://devernay.free.fr/hacks/chip8/C8TECH10.HTM
 
 https://en.wikipedia.org/wiki/CHIP-8#Opcode_table
 
