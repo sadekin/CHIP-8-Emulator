@@ -50,10 +50,6 @@ Chip8::Chip8() {
     sound_timer = 0;
 }
 
-void Chip8::initializeOpcodes() {
-
-}
-
 void Chip8::loadGame(const char *filename) {
     // Open the given file in binary mode and position the file pointer at the end.
     std::ifstream file(filename, std::ios::binary | std::ios::ate);

@@ -1,6 +1,9 @@
 #include "chip8.h"
 #include <cstdlib>  // for rand()
 
+/* Do Nothing (Invalid Opcode) */
+void Chip8::opcode_NONE() {}
+
 
 /* Display Opcodes */
 
@@ -325,9 +328,80 @@ void Chip8::opcode_FX65() {
 }
 
 
+/* Opcode Table Initialization */
+
+void Chip8::initializeOpcodeTable() {
+    // The first digit of each opcode runs from 0x0 t0 0xF, hence sizeof(table) = 0xF + 1;
+    table[0x0] = &Chip8::Table0;        // See (*) below
+
+    table[0x1] = &Chip8::opcode_1NNN;
+    table[0x2] = &Chip8::opcode_2NNN;
+    table[0x3] = &Chip8::opcode_3XNN;
+    table[0x4] = &Chip8::opcode_4XNN;
+    table[0x5] = &Chip8::opcode_5XY0;
+    table[0x6] = &Chip8::opcode_6XNN;
+    table[0x7] = &Chip8::opcode_7XNN;
+
+    table[0x8] = &Chip8::Table8;        // See (*) below
+
+    table[0x9] = &Chip8::opcode_9XY0;
+    table[0xA] = &Chip8::opcode_ANNN;
+    table[0xB] = &Chip8::opcode_BNNN;
+    table[0xC] = &Chip8::opcode_CXNN;
+    table[0xD] = &Chip8::opcode_DXYN;
+
+    table[0xE] = &Chip8::TableE;        // See (*) below
+    table[0xF] = &Chip8::TableF;        // See (*) below
+
+    // (*) For the opcodes with first digits that repeat ($0, $8, $E, $F),
+    // we’ll need secondary tables that can accommodate each of those.
+    // The opcodes that are unused are filled with opcode_NONE do indicate an invalid opcode (doing nothing).
+    for (size_t i = 0; i < 0xE + 1; i++) {
+        table0[i] = table8[i] = tableE[i] = &Chip8::opcode_NONE;
+    }
+
+    // $0 needs an array that can index up to $E+1
+    table0[0x0] = &Chip8::opcode_00E0;
+    table0[0xE] = &Chip8::opcode_00EE;
+
+    // $8 needs an array that can index up to $E+1
+    table8[0x0] = &Chip8::opcode_8XY0;
+    table8[0x1] = &Chip8::opcode_8XY1;
+    table8[0x2] = &Chip8::opcode_8XY2;
+    table8[0x3] = &Chip8::opcode_8XY3;
+    table8[0x4] = &Chip8::opcode_8XY4;
+    table8[0x5] = &Chip8::opcode_8XY5;
+    table8[0x6] = &Chip8::opcode_8XY6;
+    table8[0x7] = &Chip8::opcode_8XY7;
+    table8[0xE] = &Chip8::opcode_8XYE;
+
+    // $E needs an array that can index up to $E+1
+    tableE[0x1] = &Chip8::opcode_EXA1;
+    tableE[0xE] = &Chip8::opcode_EX9E;
+
+    // $F needs an array that can index up to $65+1
+    for (Opcode& f : tableF) f = &Chip8::opcode_NONE;
+    tableF[0x07] = &Chip8::opcode_FX07;
+    tableF[0x0A] = &Chip8::opcode_FX0A;
+    tableF[0x15] = &Chip8::opcode_FX15;
+    tableF[0x18] = &Chip8::opcode_FX18;
+    tableF[0x1E] = &Chip8::opcode_FX1E;
+    tableF[0x29] = &Chip8::opcode_FX29;
+    tableF[0x33] = &Chip8::opcode_FX33;
+    tableF[0x55] = &Chip8::opcode_FX55;
+    tableF[0x65] = &Chip8::opcode_FX65;
+}
 
 
+/* Opcode Retrieval */
 
+void Chip8::Table0() { (this->*table0[opcode & 0x000F])(); }
+
+void Chip8::Table8() { (this->*table8[opcode & 0x000F])(); }
+
+void Chip8::TableE() { (this->*tableE[opcode & 0x000F])(); }
+
+void Chip8::TableF() { (this->*tableF[opcode & 0x00FF])(); }
 
 
 

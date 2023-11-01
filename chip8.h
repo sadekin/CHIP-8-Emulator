@@ -21,7 +21,7 @@ public:
 private:
     uint16_t opcode;                                    // Current opcode (2 bytes long)
     uint8_t memory[RAM_SIZE]{};                         // 4K memory of the Chip-8 system
-    uint8_t V[NUM_REGISTERS]{};                         // 16 general-purpose 8-bit registers, V0-VF. VF doubles as a flag.
+    uint8_t V[NUM_REGISTERS]{};                         // 16 general-purpose 8-bit registers. VF doubles as a flag.
     uint16_t I;                                         // Index register (2 bytes long)
     uint16_t pc;                                        // Program counter (2 bytes long)
     uint8_t display[DISPLAY_WIDTH * DISPLAY_HEIGHT]{};  // Monochrome display of 64x32 pixels (2048 pixels total)
@@ -29,16 +29,28 @@ private:
     uint8_t sound_timer;                                // Sound timer, system beeps when this timer reaches 0
     uint16_t stack[STACK_LEVELS]{};                     // Stack for storing return addresses (16 levels deep)
     uint16_t sp;                                        // Stack pointer
-    uint8_t key[NUM_KEYS]{};                            // Represents the state of 16 keys (0x0-0xF); 0/1 = unpressed/pressed
+    uint8_t key[NUM_KEYS]{};                            // Represents state of 16 keys; 0/1 = unpressed/pressed
 
-    typedef void (Chip8::*OpcodeFunction)(uint8_t, uint8_t, uint8_t, uint8_t);
-    void initializeOpcodes();
+    void Table0();
+    void Table8();
+    void TableE();
+    void TableF();
+    typedef void (Chip8::*Opcode)();
+    Opcode table[0xF + 1]{};
+    Opcode table0[0xE + 1]{};
+    Opcode table8[0xE + 1]{};
+    Opcode tableE[0xE + 1]{};
+    Opcode tableF[0x65 + 1]{};
+    void initializeOpcodeTable();
 
     void loadGame(const char* filename);
     static uint8_t mapSDLKeyToChip8Key(SDL_Keycode sdl_key);
 
     // Opcodes===============================================================================================
     // https://en.wikipedia.org/wiki/CHIP-8#Opcode_table
+
+    /* Do Nothing (Invalid Opcode) */
+    void opcode_NONE();
 
     /* Display Opcodes */
     void opcode_00E0();     // Clear the screen
