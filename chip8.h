@@ -2,10 +2,12 @@
 
 #include <iostream>
 #include <fstream>
-#include <SDL.h>
-#include <SDL_ttf.h>
 #include <random>
 #include <chrono>
+#include <SFML/Graphics.hpp>
+#include <SFML/Window.hpp>
+#include <SFML/System.hpp>
+
 
 const unsigned int RAM_SIZE         = 4096;
 const unsigned int NUM_REGISTERS    = 16;
@@ -22,24 +24,33 @@ const unsigned int FONT_SET_SIZE                = 80;
 class Chip8 {
 public:
     Chip8();
-    void loadROM(const char* filename);
+
+    void LoadROM(const char* filename);
     void Cycle();
 
     uint8_t display[DISPLAY_WIDTH * DISPLAY_HEIGHT]{};  // Monochrome display of 64x32 pixels (2048 pixels total)
     uint8_t key[NUM_KEYS]{};                            // Represents state of 16 keys; 0/1 = unpressed/pressed
 
+    bool drawFlag{};
+
+    void Render(sf::RenderWindow& window);
+    void HandleInput(sf::RenderWindow& window);
+
 private:
-    uint16_t opcode{};                                  // Current opcode
     uint8_t memory[RAM_SIZE]{};                         // 4K memory of the Chip-8 system
     uint8_t V[NUM_REGISTERS]{};                         // 16 general-purpose 8-bit registers. VF doubles as a flag.
+
+    uint16_t opcode{};                                  // Current opcode
     uint16_t I{};                                       // Index register
-    uint16_t pc;                                        // Program counter
-    uint8_t delay_timer{};                              // Delay timer, decrements at 60Hz when set to a value above 0
-    uint8_t sound_timer{};                              // Sound timer, system beeps when this timer reaches 0
+    uint16_t pc;                                      // Program counter
+
     uint16_t stack[STACK_LEVELS]{};                     // Stack for storing return addresses
     uint16_t sp{};                                      // Stack pointer
 
-    std::default_random_engine randGen;                 // See opcode_CXNN
+    uint8_t delayTimer{};                               // Delay timer, decrements at 60Hz when set to a value above 0
+    uint8_t soundTimer{};                               // Sound timer, system beeps when this timer reaches 0
+
+    std::default_random_engine randEngine;              // See opcode_CXNN
     std::uniform_int_distribution<uint8_t> randByte;    // See opcode_CXNN
 
     void Table0();
@@ -54,11 +65,7 @@ private:
     Opcode tableF[0x65 + 1]{};
     void tabulateOpcodes();
 
-
-    static uint8_t mapSDLKeyToChip8Key(SDL_Keycode sdl_key);
-
     // Opcodes===============================================================================================
-    // https://en.wikipedia.org/wiki/CHIP-8#Opcode_table
 
     /* Do Nothing (Invalid Opcode) */
     void opcode_NONE();
@@ -94,7 +101,7 @@ private:
     void opcode_8XY7();     // Set VX to VY minus VX
     void opcode_8XYE();     // Shift VX left
 
-    /* Random Opcodes */
+    /* Random Opcode */
     void opcode_CXNN();     // Set VX to a random number bitwise and NN
 
     /* Timer Opcodes */

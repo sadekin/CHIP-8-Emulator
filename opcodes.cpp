@@ -1,15 +1,19 @@
 #include "chip8.h"
 
-//#include <cstdlib>  // for rand()
-
 /* Do Nothing (Invalid Opcode) */
-void Chip8::opcode_NONE() {}
+void Chip8::opcode_NONE() {
+    printf("\nUnknown op code: %.4X\n", opcode);
+    exit(3);
+}
 
 
 /* Display Opcodes */
 
 // Clear the screen
-void Chip8::opcode_00E0() { memset(display, 0, sizeof(display)); }
+void Chip8::opcode_00E0() {
+    memset(display, 0, sizeof(display));
+    drawFlag = true;
+}
 
 // Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels.
 // Each row of 8 pixels is read as bit-coded starting from memory location I; I value does not
@@ -34,14 +38,14 @@ void Chip8::opcode_DXYN() {
 
             // Detect collision
             if (spritePixelIsOn) {
-                if (screenPixel) {
+                if (*screenPixel) {
                     V[0xF] = 1;
                 }
+                *screenPixel ^= 1;
             }
-
-            *screenPixel ^= 1;
         }
     }
+    drawFlag = true;
 }
 
 /* Flow Opcodes */
@@ -67,7 +71,7 @@ void Chip8::opcode_2NNN() {
 }
 
 // Jump to address NNN plus V0
-void Chip8::opcode_BNNN() { pc = opcode & 0x0FFF + V[0]; }
+void Chip8::opcode_BNNN() { pc = (opcode & 0x0FFF) + V[0]; }
 
 
 /* Conditional Opcodes */
@@ -169,29 +173,37 @@ void Chip8::opcode_8XYE() {
 }
 
 
-/* Random Opcodes */
+/* Random Opcode */
 
 // Sets VX to the result of a bitwise and operation on a random number (Typically: 0 to 255) and NN.
 void Chip8::opcode_CXNN() {
-    V[(opcode & 0x0F00) >> 8] = randByte(randGen) & (opcode & 0x00FF);
+    V[(opcode & 0x0F00) >> 8] = randByte(randEngine) & (opcode & 0x00FF);
 }
 
 
 /* Timer Opcodes */
 
 // Set VX to the value of the delay timer.
-void Chip8::opcode_FX07() { V[(opcode & 0x0F00) >> 8] = delay_timer; }
+void Chip8::opcode_FX07() { V[(opcode & 0x0F00) >> 8] = delayTimer; }
 
 // A key press is awaited, and then stored in VX (blocking operation, all instruction halted until next key event).
 void Chip8::opcode_FX0A() {
-    // TODO
+    bool keyPressed = false;
+    for (uint8_t i = 0; i < NUM_KEYS; i++) {
+        if (key[i]) {
+            V[(opcode & 0x0F00) >> 8] = i;
+            keyPressed = true;
+            break;
+        }
+    }
+    if (!keyPressed) pc -= 2; // No key was pressed; all instruction halted until next key event.
 }
 
 // Sets the delay timer to VX.
-void Chip8::opcode_FX15() { delay_timer = V[(opcode & 0x0F00) >> 8]; }
+void Chip8::opcode_FX15() { delayTimer = V[(opcode & 0x0F00) >> 8]; }
 
 // Sets the sound timer to VX.
-void Chip8::opcode_FX18() { sound_timer = V[(opcode & 0x0F00) >> 8]; }
+void Chip8::opcode_FX18() { soundTimer = V[(opcode & 0x0F00) >> 8]; }
 
 // Adds VX to I. VF is not affected.
 void Chip8::opcode_FX1E() { I += V[(opcode & 0x0F00) >> 8]; }
@@ -219,7 +231,7 @@ void Chip8::opcode_FX33() {
     uint8_t value   = V[(opcode & 0x0F00) >> 8];
     memory[I]       = value / 100;
     memory[I + 1]   = (value % 100) / 10;
-    memory[I + 2]   = value / 10;
+    memory[I + 2]   = value % 10;
 }
 
 // Stores from V0 to VX (including VX) in memory, starting at address I.
@@ -311,3 +323,4 @@ void Chip8::Table8() { (this->*table8[opcode & 0x000F])(); }
 void Chip8::TableE() { (this->*tableE[opcode & 0x000F])(); }
 
 void Chip8::TableF() { (this->*tableF[opcode & 0x00FF])(); }
+
