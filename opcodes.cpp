@@ -2,7 +2,7 @@
 
 /* Do Nothing (Invalid Opcode) */
 void Chip8::opcode_NONE() {
-    printf("\nUnknown op code: %.4X\n", opcode);
+    std::cout << "Unknown opcode:   " << opcode << std::endl;
     exit(3);
 }
 
