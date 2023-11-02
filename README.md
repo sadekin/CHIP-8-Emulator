@@ -5,8 +5,10 @@ I initially wanted to create a Game Boy emulator. But as I tried to follow tutor
 
 Here are some valuable resources that I used as guides and for cross-examining my work: 
 
-[Cowgod's Chip-8 Technical Reference](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
+* [Cowgod's CHIP-8 Technical Reference](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
 
-[Wikipedia - Chip 8 Article](https://en.wikipedia.org/wiki/CHIP-8#Opcode_table)
+* [Wikipedia - CHIP-8 Article](https://en.wikipedia.org/wiki/CHIP-8#Opcode_table)
 
-[Austin Morlan's Chip-8 Tutorial](https://austinmorlan.com/posts/chip8_emulator/)
+* [Austin Morlan's CHIP-8 Tutorial](https://austinmorlan.com/posts/chip8_emulator/)
+
+* [Tutorials for SFML 2.6 (for rendering and input handling)](https://www.sfml-dev.org/tutorials/2.6/)
