@@ -39,7 +39,7 @@ Chip8::Chip8()
         memory[i + START_FONT_SET_ADDRESS] = chip8_font_set[i];
     }
 
-    // Initialize random byte generator for opcode_CXNN
+    // Initialize random byte generator for opcode_Cxkk
     randByte = std::uniform_int_distribution<uint8_t>(0, 255);
 
     tabulateOpcodes();
@@ -81,7 +81,7 @@ void Chip8::LoadROM(const char *filename) {
 
 void Chip8::Cycle() {
     // Fetch opcode
-    opcode = memory[pc] << 8 | memory[pc + 1];
+    opcode = memory[pc] << 8 | memory[pc + 1]; // big endian
 
     // Increment PC before execution
     pc += 2;

@@ -1,32 +1,126 @@
 #include "chip8.h"
 
-/* Do Nothing (Invalid Opcode) */
-void Chip8::opcode_NONE() {
-    std::cout << "Unknown opcode:   " << opcode << std::endl;
-    exit(3);
-}
+/* Opcodes */
 
-
-/* Display Opcodes */
-
-// Clear the screen
+// 00E0 - CLS: Clear the display.
 void Chip8::opcode_00E0() {
     memset(display, 0, sizeof(display));
     drawFlag = true;
 }
 
+// 00EE - RET: Return from a subroutine.
+void Chip8::opcode_00EE() { pc = stack[--sp]; }
+
+// 1nnn - JP addr: Jump to location nnn. The interpreter sets the program counter to nnn.
+void Chip8::opcode_1nnn() { pc = getNNN(); }
+
+// 2nnn - CALL addr: Call subroutine at nnn. The interpreter increments the SP,
+// then puts the current PC on the top of the stack. The PC is then set to nnn.
+void Chip8::opcode_2nnn() {
+    stack[sp++] = pc;
+    pc = getNNN();
+}
+
+// 3xkk - SE Vx, byte: Skip next instruction if Vx = kk.
+// The interpreter compares register Vx to kk, and if they are equal, increments the program counter by 2.
+void Chip8::opcode_3xkk() { if (V[getX()] == getKK()) pc += 2; }
+
+// 4xkk - SNE Vx, byte: Skip next instruction if Vx != kk.
+void Chip8::opcode_4xkk() { if (V[getX()] != getKK()) pc += 2; }
+
+// 5xy0 - SE Vx, Vy: Skip next instruction if Vx = Vy.
+// The interpreter compares register Vx to register Vy, and if they are equal, increments the program counter by 2.
+void Chip8::opcode_5xy0() { if (V[getX()] == V[getY()]) pc += 2; }
+
+// 6xkk - LD Vx, byte: The interpreter puts the value kk into register Vx.
+void Chip8::opcode_6xkk() { V[getX()] = getKK(); }
+
+// 7xkk - ADD Vx, byte: Set Vx = Vx + kk. (Carry flag is not affected).
+void Chip8::opcode_7xkk() { V[getX()] += getKK(); }
+
+// 8xy0 - LD Vx, Vy: Set Vx = Vy. Stores the value of register Vy in register Vx.
+void Chip8::opcode_8xy0() { V[getX()] = V[getY()]; }
+
+// 8xy1 - OR Vx, Vy: Set Vx = Vx OR Vy. (Bitwise OR)
+void Chip8::opcode_8yx1() { V[getX()] |= V[getY()]; }
+
+// 8xy2 - AND Vx, Vy: Set Vx = Vx AND Vy. (Bitwise AND)
+void Chip8::opcode_8xy2() { V[getX()] &= V[getY()]; }
+
+// 8xy3 - XOR Vx, Vy: Set Vx = Vx XOR Vy.
+void Chip8::opcode_8xy3() { V[getX()] ^= V[getY()]; }
+
+// 8xy4 - ADD Vx, Vy: Set Vx = Vx + Vy, set VF = carry.
+// The values of Vx and Vy are added together. If the result is greater than 8 bits (i.e., > 255)
+// VF is set to 1, otherwise 0. Only the lowest 8 bits of the result are kept, and stored in Vx.
+void Chip8::opcode_8xy4() {
+    uint8_t rx = getX(), ry = getY();
+
+    uint16_t sum = V[rx] + V[ry];
+    V[0xF] = sum > 0xFF ? 1 : 0;
+
+    V[rx] = sum & 0xFF;
+}
+
+// 8xy5 - SUB Vx, Vy: Set Vx = Vx - Vy, set VF = NOT borrow.
+// If Vx > Vy, then VF is set to 1, otherwise 0. Then Vy is subtracted from Vx, and the result is stored in Vx.
+void Chip8::opcode_8xy5() {
+    uint8_t rx = getX(), ry = getY();
+
+    V[0xF] = V[rx] > V[ry] ? 1 : 0;
+
+    V[rx] -= V[ry];
+}
+
+// 8xy6 - SHR Vx {, Vy}: Set Vx = Vx SHR 1.
+// If the least-significant bit of Vx is 1, then VF is set to 1, otherwise 0. Then Vx is divided by 2.
+void Chip8::opcode_8xy6() {
+    uint8_t rx = getX();
+    V[0xF] = V[rx] & 0x1;
+    V[rx] >>= 1;
+}
+
+// 8xy7 - SUBN Vx, Vy: Set Vx = Vy - Vx, set VF = NOT borrow.
+// If Vy > Vx, then VF is set to 1, otherwise 0. Then Vx is subtracted from Vy, and the result is stored in Vx.
+void Chip8::opcode_8xy7() {
+    uint8_t rx = getX(), ry = getY();
+
+    V[0xF] = V[ry] > V[rx] ? 1 : 0;
+
+    V[rx] = V[ry] - V[rx];
+}
+
+// 8xyE - SHL Vx {, Vy}: Set Vx = Vx SHL 1.
+// If the most-significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is multiplied by 2.
+void Chip8::opcode_8xyE() {
+    uint8_t rx = getX();
+    V[0xF] = (V[rx] & 0x80) >> 7;
+    V[rx] <<= 1;
+}
+
+// 9xy0 - SNE Vx, Vy: Skip next instruction if Vx != Vy.
+void Chip8::opcode_9xy0() { if (V[getX()] != V[getY()]) pc += 2; }
+
+// Annn - LD I, addr: Set I = nnn.
+void Chip8::opcode_Annn() { I = getNNN(); }
+
+// Bnnn - JP V0, addr: Jump to location nnn + V0.
+void Chip8::opcode_Bnnn() { pc = getNNN() + V[0]; }
+
+// Cxkk - RND Vx, byte: Set Vx = random byte AND kk.
+void Chip8::opcode_Cxkk() { V[getX()] = randByte(randEngine) & getKK(); }
+
+// Dxyn - DRW Vx, Vy, nibble: Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
 // Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels.
 // Each row of 8 pixels is read as bit-coded starting from memory location I; I value does not
 // change after the execution of this instruction.
-// As described above, VF is set to 1 if any screen pixels are flipped from set to unset when
+// VF is set to 1 if any screen pixels are flipped from set to unset when
 // the sprite is drawn, and to 0 if that does not happen.
-void Chip8::opcode_DXYN() {
-    uint8_t x = V[(opcode & 0x0F00) >> 8];
-    uint8_t y = V[(opcode & 0x00F0) >> 4];
+void Chip8::opcode_Dxyn() {
+    uint8_t x = V[getX()], y = V[getY()];
     uint8_t height = opcode & 0x000F;
 
-    // Reset VF - will be set to 1 if any collision occurs during drawing
-    V[0xF] = 0;
+    V[0xF] = 0; // reset VF in case collision does not occur
 
     for (uint8_t row = 0; row < height; ++row) {
         uint8_t spriteByte = memory[I + row];
@@ -36,11 +130,8 @@ void Chip8::opcode_DXYN() {
             bool spritePixelIsOn = (spriteByte & (0x80 >> col)) != 0;
             uint8_t* screenPixel = &display[x + col + (y + row) * DISPLAY_WIDTH];
 
-            // Detect collision
             if (spritePixelIsOn) {
-                if (*screenPixel) {
-                    V[0xF] = 1;
-                }
+                if (*screenPixel) V[0xF] = 1; // collision
                 *screenPixel ^= 1;
             }
         }
@@ -48,206 +139,73 @@ void Chip8::opcode_DXYN() {
     drawFlag = true;
 }
 
-/* Flow Opcodes */
+// Ex9E - SKP Vx: Skip next instruction if key with the value of Vx is pressed.
+void Chip8::opcode_Ex9E() { if (key[V[getX()]]) pc += 2; }
 
-// Return from a subroutine
-void Chip8::opcode_00EE() {
-    // When we return from a subroutine, we need to pop the top address from the stack
-    // and jump back to it, hence pre-decrementing the stack pointer
-    pc = stack[--sp];
-}
+// ExA1 - SKNP Vx: Skip next instruction if key with the value of Vx is not pressed.
+void Chip8::opcode_ExA1() { if (!key[V[getX()]]) pc += 2; }
 
-// Jump to address NNN
-void Chip8::opcode_1NNN() {
-    uint16_t address = opcode & 0x0FFF;
-    pc = address;
-}
+// Fx07 - LD Vx, DT: Set Vx = delay timer value.
+void Chip8::opcode_Fx07() { V[getX()] = delayTimer; }
 
-// Call subroutine at NNN
-void Chip8::opcode_2NNN() {
-    stack[sp++] = pc;
-    uint16_t address = opcode & 0x0FFF;
-    pc = address;
-}
-
-// Jump to address NNN plus V0
-void Chip8::opcode_BNNN() { pc = (opcode & 0x0FFF) + V[0]; }
-
-
-/* Conditional Opcodes */
-
-// Skip next instruction if VX equals NN
-void Chip8::opcode_3XNN() {
-    if (V[(opcode & 0x0F00) >> 8] == (opcode & 0x00FF)) pc += 2;
-}
-
-// Skip next instruction if VX doesn't equal NN
-void Chip8::opcode_4XNN() {
-    if (V[(opcode & 0x0F00) >> 8] != (opcode & 0x00FF)) pc += 2;
-}
-
-// Skip next instruction if VX equals VY
-void Chip8::opcode_5XY0() {
-    if (V[(opcode & 0x0F00) >> 8] == V[(opcode & 0x00F0) >> 4]) pc += 2;
-}
-
-// Skip next instruction if VX doesn't equal VY
-void Chip8::opcode_9XY0() {
-    if (V[(opcode & 0x0F00) >> 8] != V[(opcode & 0x00F0) >> 4]) pc += 2;
-}
-
-// Skip next instruction if key with value VX is pressed
-void Chip8::opcode_EX9E() {
-    if (key[V[(opcode & 0x0F00) >> 8]]) pc += 2;
-}
-
-// Skip next instruction if key with value VX is not pressed
-void Chip8::opcode_EXA1() {
-    if (!key[V[(opcode & 0x0F00) >> 8]]) pc += 2;
-}
-
-
-/* Arithmetic Opcodes */
-
-// Set VX to NN
-void Chip8::opcode_6XNN() { V[(opcode & 0x0F00) >> 8] = opcode & 0x00FF; }
-
-// Adds NN to VX (carry flag is not changed).
-void Chip8::opcode_7XNN() { V[(opcode & 0x0F00) >> 8] += opcode & 0x00FF; }
-
-// Sets VX to the value of VY.
-void Chip8::opcode_8XY0() { V[(opcode & 0x0F00) >> 8] = V[(opcode & 0x00F0) >> 4]; }
-
-// Sets VX to VX or VY. (bitwise OR operation)
-void Chip8::opcode_8XY1() { V[(opcode & 0x0F00) >> 8] |= V[(opcode & 0x00F0) >> 4]; }
-
-// Sets VX to VX and VY. (bitwise AND operation)
-void Chip8::opcode_8XY2() { V[(opcode & 0x0F00) >> 8] &= V[(opcode & 0x00F0) >> 4]; }
-
-// Set VX to VX xor VY
-void Chip8::opcode_8XY3() { V[(opcode & 0x0F00) >> 8] ^= V[(opcode & 0x00F0) >> 4]; }
-
-// Adds VY to VX. VF is set to 1 when there's a carry, and to 0 when there is not.
-void Chip8::opcode_8XY4() {
-    uint8_t rx = (opcode & 0x0F00) >> 8;
-    uint8_t ry = (opcode & 0x00F0) >> 4;
-
-    uint16_t sum = V[rx] + V[ry];
-    V[0xF] = sum > 0xFF ? 1 : 0;
-
-    V[rx] = sum & 0xFF;
-}
-
-// VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there is not.
-void Chip8::opcode_8XY5() {
-    uint8_t rx = (opcode & 0x0F00) >> 8;
-    uint8_t ry = (opcode & 0x00F0) >> 4;
-
-    V[0xF] = V[rx] > V[ry] ? 1 : 0;
-
-    V[rx] -= V[ry];
-}
-
-// Stores the least significant bit of VX in VF and then shifts VX to the right by 1.
-void Chip8::opcode_8XY6() {
-    uint8_t rx = (opcode & 0x0F00) >> 8;
-    V[0xF] = V[rx] & 0x1;
-    V[rx] >>= 1;
-}
-
-// Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and 1 when there is not.
-void Chip8::opcode_8XY7() {
-    uint8_t rx = (opcode & 0x0F00) >> 8;
-    uint8_t ry = (opcode & 0x00F0) >> 4;
-
-    V[0xF] = V[ry] > V[rx] ? 1 : 0;
-
-    V[rx] = V[ry] - V[rx];
-}
-
-// Stores the most significant bit of VX in VF and then shifts VX to the left by 1.
-void Chip8::opcode_8XYE() {
-    uint8_t rx = (opcode & 0x0F00) >> 8;
-    V[0xF] = (V[rx] & 0x80) >> 7;
-    V[rx] <<= 1;
-}
-
-
-/* Random Opcode */
-
-// Sets VX to the result of a bitwise and operation on a random number (Typically: 0 to 255) and NN.
-void Chip8::opcode_CXNN() {
-    V[(opcode & 0x0F00) >> 8] = randByte(randEngine) & (opcode & 0x00FF);
-}
-
-
-/* Timer Opcodes */
-
-// Set VX to the value of the delay timer.
-void Chip8::opcode_FX07() { V[(opcode & 0x0F00) >> 8] = delayTimer; }
-
-// A key press is awaited, and then stored in VX (blocking operation, all instruction halted until next key event).
-void Chip8::opcode_FX0A() {
-    bool keyPressed = false;
-    for (uint8_t i = 0; i < NUM_KEYS; i++) {
+// Fx0A - LD Vx, K: Wait for a key press, store the value of the key in Vx.
+// All execution stops until a key is pressed, then the value of that key is stored in Vx.
+void Chip8::opcode_Fx0A() {
+    for (uint8_t i = 0; i < KEY_COUNT; i++) {
         if (key[i]) {
-            V[(opcode & 0x0F00) >> 8] = i;
-            keyPressed = true;
-            break;
+            V[getX()] = i;
+            return;
         }
     }
-    if (!keyPressed) pc -= 2; // No key was pressed; all instruction halted until next key event.
+    pc -= 2; // no key was pressed
 }
 
-// Sets the delay timer to VX.
-void Chip8::opcode_FX15() { delayTimer = V[(opcode & 0x0F00) >> 8]; }
+// Fx15 - LD DT, Vx: Set delay timer = Vx.
+void Chip8::opcode_Fx15() { delayTimer = V[getX()]; }
 
-// Sets the sound timer to VX.
-void Chip8::opcode_FX18() { soundTimer = V[(opcode & 0x0F00) >> 8]; }
+// Fx15 - LD DT, Vx: Set delay timer = Vx.
+void Chip8::opcode_Fx18() { soundTimer = V[getX()]; }
 
-// Adds VX to I. VF is not affected.
-void Chip8::opcode_FX1E() { I += V[(opcode & 0x0F00) >> 8]; }
+// Fx1E - ADD I, Vx: Set I = I + Vx.
+void Chip8::opcode_Fx1E() { I += V[getX()]; }
 
-
-/* Memory Opcodes */
-
-// Sets I to the address NNN.
-void Chip8::opcode_ANNN() { I = opcode & 0x0FFF; }
-
-// Sets I to the location of the sprite for the character in VX.
+// Fx29 - LD F, Vx: Set I = location of sprite for digit Vx.
 // Characters 0-F (in hexadecimal) are represented by a 4x5 font.
-void Chip8::opcode_FX29() {
-    uint8_t rx = (opcode & 0x0F00) >> 8;
+void Chip8::opcode_Fx29() {
+    uint8_t digit = V[getX()];
 
     // Font chars are located at START_FONT_SET_ADDRESS (offset) and are 5 bytes each
-    uint16_t spriteAddr = START_FONT_SET_ADDRESS + (V[rx] * 5);
+    uint16_t spriteAddr = START_FONT_SET_ADDRESS + (digit * 5);
     I = spriteAddr;
 }
 
-// Stores the binary-coded decimal (BCD) representation of VX,
-// with the hundreds digit in memory at location in I,
-// the tens digit at location I+1, and the ones digit at location I+2.
-void Chip8::opcode_FX33() {
-    uint8_t value   = V[(opcode & 0x0F00) >> 8];
-    memory[I]       = value / 100;
-    memory[I + 1]   = (value % 100) / 10;
-    memory[I + 2]   = value % 10;
+// Fx33 - LD B, Vx: Store BCD representation of Vx in memory locations I, I+1, and I+2.
+void Chip8::opcode_Fx33() {
+    uint8_t value   = V[getX()];
+    memory[I]       = value / 100;          // hundreds
+    memory[I + 1]   = (value % 100) / 10;   // tens
+    memory[I + 2]   = value % 10;           // ones
 }
 
-// Stores from V0 to VX (including VX) in memory, starting at address I.
+// Fx55 - LD [I], Vx: Store registers V0 through Vx (inclusive) in memory starting at location I.
 // The offset from I is increased by 1 for each value written, but I itself is left unmodified.
-void Chip8::opcode_FX55() {
-    uint8_t rx = (opcode & 0x0F00) >> 8;
+void Chip8::opcode_Fx55() {
+    uint8_t rx = getX();
     for (int i = 0; i < rx + 1; ++i) memory[I + i] = V[i];
 }
 
-// Fills from V0 to VX (including VX) with values from memory, starting at address I.
-// The offset from I is increased by 1 for each value read, but I itself is left unmodified.
-void Chip8::opcode_FX65() {
-    uint8_t rx = (opcode & 0x0F00) >> 8;
+// Fx65 - LD Vx, [I]: Read registers V0 through Vx from memory starting at location I.
+// The interpreter reads values from memory starting at location I into registers V0 through Vx.
+void Chip8::opcode_Fx65() {
+    uint8_t rx = getX();
     for (int i = 0; i < rx + 1; ++i) V[i] = memory[I + i];
 }
 
+// NONE - NOP: Invalid opcode
+void Chip8::opcode_NONE() {
+    std::cout << "Invalid opcode:   " << opcode << std::endl;
+    exit(3);
+}
 
 /* Opcode Table Initialization */
 
@@ -255,21 +213,21 @@ void Chip8::tabulateOpcodes() {
     // The first digit of each opcode runs from 0x0 t0 0xF, hence sizeof(table) = 0xF + 1;
     table[0x0] = &Chip8::Table0;        // See (*) below
 
-    table[0x1] = &Chip8::opcode_1NNN;
-    table[0x2] = &Chip8::opcode_2NNN;
-    table[0x3] = &Chip8::opcode_3XNN;
-    table[0x4] = &Chip8::opcode_4XNN;
-    table[0x5] = &Chip8::opcode_5XY0;
-    table[0x6] = &Chip8::opcode_6XNN;
-    table[0x7] = &Chip8::opcode_7XNN;
+    table[0x1] = &Chip8::opcode_1nnn;
+    table[0x2] = &Chip8::opcode_2nnn;
+    table[0x3] = &Chip8::opcode_3xkk;
+    table[0x4] = &Chip8::opcode_4xkk;
+    table[0x5] = &Chip8::opcode_5xy0;
+    table[0x6] = &Chip8::opcode_6xkk;
+    table[0x7] = &Chip8::opcode_7xkk;
 
     table[0x8] = &Chip8::Table8;        // See (*) below
 
-    table[0x9] = &Chip8::opcode_9XY0;
-    table[0xA] = &Chip8::opcode_ANNN;
-    table[0xB] = &Chip8::opcode_BNNN;
-    table[0xC] = &Chip8::opcode_CXNN;
-    table[0xD] = &Chip8::opcode_DXYN;
+    table[0x9] = &Chip8::opcode_9xy0;
+    table[0xA] = &Chip8::opcode_Annn;
+    table[0xB] = &Chip8::opcode_Bnnn;
+    table[0xC] = &Chip8::opcode_Cxkk;
+    table[0xD] = &Chip8::opcode_Dxyn;
 
     table[0xE] = &Chip8::TableE;        // See (*) below
     table[0xF] = &Chip8::TableF;        // See (*) below
@@ -286,31 +244,31 @@ void Chip8::tabulateOpcodes() {
     table0[0xE] = &Chip8::opcode_00EE;
 
     // $8 needs an array that can index up to $E+1
-    table8[0x0] = &Chip8::opcode_8XY0;
-    table8[0x1] = &Chip8::opcode_8XY1;
-    table8[0x2] = &Chip8::opcode_8XY2;
-    table8[0x3] = &Chip8::opcode_8XY3;
-    table8[0x4] = &Chip8::opcode_8XY4;
-    table8[0x5] = &Chip8::opcode_8XY5;
-    table8[0x6] = &Chip8::opcode_8XY6;
-    table8[0x7] = &Chip8::opcode_8XY7;
-    table8[0xE] = &Chip8::opcode_8XYE;
+    table8[0x0] = &Chip8::opcode_8xy0;
+    table8[0x1] = &Chip8::opcode_8yx1;
+    table8[0x2] = &Chip8::opcode_8xy2;
+    table8[0x3] = &Chip8::opcode_8xy3;
+    table8[0x4] = &Chip8::opcode_8xy4;
+    table8[0x5] = &Chip8::opcode_8xy5;
+    table8[0x6] = &Chip8::opcode_8xy6;
+    table8[0x7] = &Chip8::opcode_8xy7;
+    table8[0xE] = &Chip8::opcode_8xyE;
 
     // $E needs an array that can index up to $E+1
-    tableE[0x1] = &Chip8::opcode_EXA1;
-    tableE[0xE] = &Chip8::opcode_EX9E;
+    tableE[0x1] = &Chip8::opcode_ExA1;
+    tableE[0xE] = &Chip8::opcode_Ex9E;
 
     // $F needs an array that can index up to $65+1
     for (Opcode& f : tableF) f = &Chip8::opcode_NONE;
-    tableF[0x07] = &Chip8::opcode_FX07;
-    tableF[0x0A] = &Chip8::opcode_FX0A;
-    tableF[0x15] = &Chip8::opcode_FX15;
-    tableF[0x18] = &Chip8::opcode_FX18;
-    tableF[0x1E] = &Chip8::opcode_FX1E;
-    tableF[0x29] = &Chip8::opcode_FX29;
-    tableF[0x33] = &Chip8::opcode_FX33;
-    tableF[0x55] = &Chip8::opcode_FX55;
-    tableF[0x65] = &Chip8::opcode_FX65;
+    tableF[0x07] = &Chip8::opcode_Fx07;
+    tableF[0x0A] = &Chip8::opcode_Fx0A;
+    tableF[0x15] = &Chip8::opcode_Fx15;
+    tableF[0x18] = &Chip8::opcode_Fx18;
+    tableF[0x1E] = &Chip8::opcode_Fx1E;
+    tableF[0x29] = &Chip8::opcode_Fx29;
+    tableF[0x33] = &Chip8::opcode_Fx33;
+    tableF[0x55] = &Chip8::opcode_Fx55;
+    tableF[0x65] = &Chip8::opcode_Fx65;
 }
 
 

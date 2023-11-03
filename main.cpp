@@ -4,7 +4,7 @@ int main() {
     Chip8 chip8;
 
     // Load ROM into memory
-    chip8.LoadROM("test_opcode.ch8");
+    chip8.LoadROM("TETRIS");
 
     sf::RenderWindow window(sf::VideoMode(DISPLAY_WIDTH * 10, DISPLAY_HEIGHT * 10), "Chip8 Emulator");
 
@@ -17,7 +17,7 @@ int main() {
         }
 
         // Add a delay or limit the frame rate so it doesn't run too fast
-        sf::sleep(sf::milliseconds(1));
+        sf::sleep(sf::milliseconds(2));
     }
 
     return 0;
