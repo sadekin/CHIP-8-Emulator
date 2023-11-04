@@ -1,8 +1,8 @@
 #include "emulator.h"
 
 Emulator::Emulator()
-        : chip8(), window(sf::VideoMode(DISPLAY_WIDTH * 15, DISPLAY_HEIGHT * 10), "Chip8 Emulator") {
-    chip8.LoadROM("roms/test_opcode.ch8");
+        : chip8(), window(sf::VideoMode(DISPLAY_WIDTH * 15, DISPLAY_HEIGHT * 10), "CHIP-8") {
+    chip8.LoadROM("../roms/Chip8 emulator Logo [Garstyciuks].ch8");
     SetupGUI();
 }
 
@@ -18,11 +18,6 @@ void Emulator::Run() {
     }
 }
 
-//void Emulator::clearScreen() {
-//    window.clear(sf::Color::Black);
-//    Render();
-//}
-
 void Emulator::SetupGUI() {
     gui.setTarget(window);
 
@@ -31,19 +26,43 @@ void Emulator::SetupGUI() {
     romSelector->setSize(200, 30);
     romSelector->setPosition(700, 10);
 
-    // TODO: Populate the ComboBox with the names of available ROMs
-    romSelector->addItem("INVADERS");
-    romSelector->addItem("TETRIS");
+    // Set the number of items to display before scrollbar is needed
+    romSelector->setItemsToDisplay(9);
 
+    // Populate the ComboBox with the names of available ROMs
+    romSelector->addItem("PLEASE SELECT A GAME");
+    romSelector->addItem("15PUZZLE");
+    romSelector->addItem("BLINKY");
+    romSelector->addItem("BLITZ");
+    romSelector->addItem("BRIX");
+    romSelector->addItem("CONNECT4");
+    romSelector->addItem("GUESS");
+    romSelector->addItem("HIDDEN");
+    romSelector->addItem("INVADERS");
+    romSelector->addItem("KALEID");
+    romSelector->addItem("MAZE");
+    romSelector->addItem("MERLIN");
+    romSelector->addItem("MISSILE");
+    romSelector->addItem("PONG");
+    romSelector->addItem("PONG2");
+    romSelector->addItem("PUZZLE");
+    romSelector->addItem("SYZYGY");
+    romSelector->addItem("TANK");
+    romSelector->addItem("TETRIS");
+    romSelector->addItem("TICTAC");
+    romSelector->addItem("UFO");
+    romSelector->addItem("VBRIX");
+    romSelector->addItem("VERS");
+    romSelector->addItem("WIPEOFF");
+
+    // Setup the onItemSelect callback
     romSelector->onItemSelect([this](const tgui::String& item) {
-        // Handle ROM selection from a dropdown menu
-        if (item == "INVADERS") {
-            chip8.LoadROM("roms/INVADERS");
-            window.setTitle("INVADERS");
-        } else if (item == "TETRIS") {
-            window.setTitle("TETRIS");
-            chip8.LoadROM("roms/TETRIS");
-        }
+        if (item.toStdString() == "PLEASE SELECT A GAME") return;
+        std::string romPath = "../roms/" + item.toStdString();
+        chip8.LoadROM(romPath);
+
+        // Set the window title to the name of the ROM
+        window.setTitle(item.toStdString());
     });
 
     gui.add(romSelector);

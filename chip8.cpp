@@ -63,7 +63,7 @@ void Chip8::Reset() {
 }
 
 
-void Chip8::LoadROM(const char *filename) {
+void Chip8::LoadROM(const std::string& filename) {
     Reset();
     // Open the given file in binary mode and position the file pointer at the end.
     std::ifstream file(filename, std::ios::binary | std::ios::ate);

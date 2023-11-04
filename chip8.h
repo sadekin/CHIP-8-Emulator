@@ -21,7 +21,7 @@ class Chip8 {
 public:
     Chip8();
 
-    void LoadROM(const char* filename);
+    void LoadROM(const std::string& filename);
     void Cycle();
     void Reset();
 
