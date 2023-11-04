@@ -24,7 +24,6 @@ private:
     void SetupGUI();
     void Render();
     void HandleInput();
-    void clearScreen();
 
     sf::RenderWindow window;
     tgui::Gui gui;
