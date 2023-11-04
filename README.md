@@ -12,3 +12,8 @@ Here are some valuable resources that I used as guides and for cross-examining m
 * [Austin Morlan's CHIP-8 Tutorial](https://austinmorlan.com/posts/chip8_emulator/)
 
 * [Tutorials for SFML 2.6 (for rendering and input handling)](https://www.sfml-dev.org/tutorials/2.6/)
+
+And here are the repos from which I obtained the ROMS I tested:
+
+* https://github.com/JamesGriffin/CHIP-8-Emulator
+* https://github.com/kripod/chip8-roms/
