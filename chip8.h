@@ -2,12 +2,8 @@
 
 #include <iostream>
 #include <fstream>
-#include <random>
-#include <chrono>
-#include <SFML/Graphics.hpp>
-#include <SFML/Window.hpp>
-#include <SFML/System.hpp>
-
+#include <random>   // for opcode Cxkk
+#include <chrono>   // for random seed
 
 const unsigned int RAM_SIZE         = 4096;
 const unsigned int REGISTER_COUNT   = 16;
@@ -27,13 +23,12 @@ public:
 
     void LoadROM(const char* filename);
     void Cycle();
+    void Reset();
 
     uint8_t display[DISPLAY_WIDTH * DISPLAY_HEIGHT]{};  // Monochrome display of 64x32 pixels (2048 pixels total)
     uint8_t key[KEY_COUNT]{};                           // Represents state of 16 keys; 0/1 = unpressed/pressed
 
     bool drawFlag{};                                    // Signal to draw
-    void Render(sf::RenderWindow& window);
-    void HandleInput(sf::RenderWindow& window);
 
 private:
     uint8_t memory[RAM_SIZE]{};                         // 4K memory of the Chip-8 system
@@ -103,8 +98,8 @@ private:
     void opcode_8xy7();     void opcode_Fx55();
 
     // Opcode Utility Functions=========================================================
-    // These are helper functions designed to help with the extraction of information
-    // from an opcode during an execution process.
+    // These are helper functions designed to aid with the extraction of information
+    // from an opcode.
     //
     // nnn or addr  - A 12-bit value, the lowest 12 bits of the instruction
     // n or nibble  - A 4-bit value, the lowest 4 bits of the instruction

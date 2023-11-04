@@ -282,3 +282,4 @@ void Chip8::TableE() { (this->*tableE[opcode & 0x000F])(); }
 
 void Chip8::TableF() { (this->*tableF[opcode & 0x00FF])(); }
 
+

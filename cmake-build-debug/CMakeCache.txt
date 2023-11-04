@@ -225,6 +225,9 @@ SFML_DIR:PATH=/opt/homebrew/lib/cmake/SFML
 //Path to a file.
 SFML_DOC_DIR:PATH=/opt/homebrew/share/doc/SFML
 
+//The directory containing a CMake configuration file for TGUI.
+TGUI_DIR:PATH=/opt/homebrew/lib/cmake/TGUI
+
 
 ########################
 # INTERNAL cache entries
